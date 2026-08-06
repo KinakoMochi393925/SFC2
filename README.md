@@ -5,7 +5,7 @@ Windows 11 向けGUIデスクトップアプリです。
 
 SFC2 is a GUI desktop application for Windows 11 that allows you to convert video, audio, and image formats, as well as preview files directly within the app.
 <img width="1920" height="1080" alt="GUI_cnv" src="https://github.com/user-attachments/assets/40491963-6839-4dfd-b677-318c6a9288aa" />
-
+↑実際の画面（左がEnglish、右が日本語用）↑
 
 
 ## セットアップ
