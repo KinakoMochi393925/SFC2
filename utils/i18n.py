@@ -70,6 +70,13 @@ TRANSLATIONS = {
     "open_file_after": {"ja": "変換したファイルをデフォルトのアプリで開く", "en": "Open converted file with default app"},
     "open_folder_after": {"ja": "変換後のフォルダを自動で開く", "en": "Open output folder after conversion"},
 
+    # 既定の変換先
+    "default_format_group": {"ja": "既定の変換先フォーマット", "en": "Default Output Formats"},
+    "default_video_format": {"ja": "動画:", "en": "Video:"},
+    "default_audio_format": {"ja": "音声:", "en": "Audio:"},
+    "default_image_format": {"ja": "画像:", "en": "Image:"},
+    "default_format_not_set": {"ja": "（設定しない）", "en": "(Not set)"},
+
     # エラー・確認メッセージ
     "error_title": {"ja": "エラー", "en": "Error"},
     "error_load_failed": {"ja": "ファイルの読み込みに失敗しました。", "en": "Failed to load the file."},

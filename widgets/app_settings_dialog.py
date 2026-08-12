@@ -7,6 +7,9 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QRadioButton,
     QVBoxLayout,
+    QComboBox,
+    QFormLayout,
+    QLabel,
 )
 
 from settings.app_settings import (
@@ -14,8 +17,14 @@ from settings.app_settings import (
     get_open_folder_after,
     set_open_file_after,
     set_open_folder_after,
+    get_default_video_format,
+    set_default_video_format,
+    get_default_audio_format,
+    set_default_audio_format,
+    get_default_image_format,
+    set_default_image_format,
 )
-from utils.constants import LANGUAGE_EN, LANGUAGE_JA
+from utils.constants import LANGUAGE_EN, LANGUAGE_JA, VIDEO_OUTPUT_FORMATS, AUDIO_OUTPUT_FORMATS, IMAGE_OUTPUT_FORMATS
 from utils.i18n import LanguageManager, tr
 from widgets.ffmpeg_path_widget import FfmpegPathWidget
 
@@ -56,12 +65,54 @@ class AppSettingsDialog(QDialog):
         post_conversion_layout.addWidget(self._open_file_check)
         post_conversion_layout.addWidget(self._open_folder_check)
 
+        self._default_format_group = QGroupBox()
+        default_format_layout = QFormLayout(self._default_format_group)
+        
+        self._video_format_combo = QComboBox()
+        self._video_format_combo.addItem(tr("default_format_not_set"), "")
+        for fmt in VIDEO_OUTPUT_FORMATS:
+            self._video_format_combo.addItem(fmt, fmt)
+        current_video = get_default_video_format()
+        if current_video:
+            index = self._video_format_combo.findData(current_video)
+            if index >= 0:
+                self._video_format_combo.setCurrentIndex(index)
+                
+        self._audio_format_combo = QComboBox()
+        self._audio_format_combo.addItem(tr("default_format_not_set"), "")
+        for fmt in AUDIO_OUTPUT_FORMATS:
+            self._audio_format_combo.addItem(fmt, fmt)
+        current_audio = get_default_audio_format()
+        if current_audio:
+            index = self._audio_format_combo.findData(current_audio)
+            if index >= 0:
+                self._audio_format_combo.setCurrentIndex(index)
+                
+        self._image_format_combo = QComboBox()
+        self._image_format_combo.addItem(tr("default_format_not_set"), "")
+        for fmt in IMAGE_OUTPUT_FORMATS:
+            self._image_format_combo.addItem(fmt, fmt)
+        current_image = get_default_image_format()
+        if current_image:
+            index = self._image_format_combo.findData(current_image)
+            if index >= 0:
+                self._image_format_combo.setCurrentIndex(index)
+
+        self._video_format_label = QLabel()
+        self._audio_format_label = QLabel()
+        self._image_format_label = QLabel()
+        
+        default_format_layout.addRow(self._video_format_label, self._video_format_combo)
+        default_format_layout.addRow(self._audio_format_label, self._audio_format_combo)
+        default_format_layout.addRow(self._image_format_label, self._image_format_combo)
+
         self._buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
         self._buttons.accepted.connect(self._on_accept)
 
         layout = QVBoxLayout(self)
         layout.addWidget(self._ffmpeg_group)
         layout.addWidget(self._language_group)
+        layout.addWidget(self._default_format_group)
         layout.addWidget(self._post_conversion_group)
         layout.addWidget(self._buttons)
 
@@ -78,6 +129,9 @@ class AppSettingsDialog(QDialog):
         self._path_widget.save()
         set_open_file_after(self._open_file_check.isChecked())
         set_open_folder_after(self._open_folder_check.isChecked())
+        set_default_video_format(self._video_format_combo.currentData())
+        set_default_audio_format(self._audio_format_combo.currentData())
+        set_default_image_format(self._image_format_combo.currentData())
         self.accept()
 
     def _retranslate_ui(self, _lang=None) -> None:
@@ -89,3 +143,12 @@ class AppSettingsDialog(QDialog):
         self._post_conversion_group.setTitle(tr("post_conversion_group"))
         self._open_file_check.setText(tr("open_file_after"))
         self._open_folder_check.setText(tr("open_folder_after"))
+        
+        self._default_format_group.setTitle(tr("default_format_group"))
+        self._video_format_label.setText(tr("default_video_format"))
+        self._audio_format_label.setText(tr("default_audio_format"))
+        self._image_format_label.setText(tr("default_image_format"))
+        
+        self._video_format_combo.setItemText(0, tr("default_format_not_set"))
+        self._audio_format_combo.setItemText(0, tr("default_format_not_set"))
+        self._image_format_combo.setItemText(0, tr("default_format_not_set"))

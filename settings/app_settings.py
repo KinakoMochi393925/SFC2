@@ -10,6 +10,10 @@ _KEY_LANGUAGE = "ui/language"
 _KEY_OPEN_FILE = "post_conversion/open_file"
 _KEY_OPEN_FOLDER = "post_conversion/open_folder"
 
+_KEY_DEFAULT_VIDEO_FORMAT = "default_formats/video"
+_KEY_DEFAULT_AUDIO_FORMAT = "default_formats/audio"
+_KEY_DEFAULT_IMAGE_FORMAT = "default_formats/image"
+
 
 def _settings() -> QSettings:
     return QSettings(ORG_NAME, APP_NAME)
@@ -48,3 +52,30 @@ def get_open_folder_after() -> bool:
 
 def set_open_folder_after(value: bool) -> None:
     _settings().setValue(_KEY_OPEN_FOLDER, value)
+
+
+def get_default_video_format() -> Optional[str]:
+    value = _settings().value(_KEY_DEFAULT_VIDEO_FORMAT, "", type=str)
+    return value or None
+
+
+def set_default_video_format(format_str: str) -> None:
+    _settings().setValue(_KEY_DEFAULT_VIDEO_FORMAT, format_str)
+
+
+def get_default_audio_format() -> Optional[str]:
+    value = _settings().value(_KEY_DEFAULT_AUDIO_FORMAT, "", type=str)
+    return value or None
+
+
+def set_default_audio_format(format_str: str) -> None:
+    _settings().setValue(_KEY_DEFAULT_AUDIO_FORMAT, format_str)
+
+
+def get_default_image_format() -> Optional[str]:
+    value = _settings().value(_KEY_DEFAULT_IMAGE_FORMAT, "", type=str)
+    return value or None
+
+
+def set_default_image_format(format_str: str) -> None:
+    _settings().setValue(_KEY_DEFAULT_IMAGE_FORMAT, format_str)

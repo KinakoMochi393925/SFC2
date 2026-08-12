@@ -16,6 +16,12 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from settings.app_settings import (
+    get_default_video_format,
+    get_default_audio_format,
+    get_default_image_format,
+)
+
 from utils.constants import (
     AUDIO_OUTPUT_FORMATS,
     CATEGORY_COLORS,
@@ -190,7 +196,22 @@ class ConversionSettingsWidget(QWidget):
 
         self._format_combo.blockSignals(True)
         self._format_combo.clear()
-        self._format_combo.addItems(_FORMATS_BY_CATEGORY.get(category, []))
+        
+        formats = _FORMATS_BY_CATEGORY.get(category, [])
+        self._format_combo.addItems(formats)
+        
+        # Apply default format if set
+        default_format = None
+        if category == CATEGORY_VIDEO:
+            default_format = get_default_video_format()
+        elif category == CATEGORY_AUDIO:
+            default_format = get_default_audio_format()
+        elif category == CATEGORY_IMAGE:
+            default_format = get_default_image_format()
+            
+        if default_format and default_format in formats:
+            self._format_combo.setCurrentText(default_format)
+
         self._format_combo.blockSignals(False)
 
         if source_width and source_height:
