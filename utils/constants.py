@@ -10,7 +10,8 @@ LOG_FILE = LOGS_DIR / "app.log"
 APP_NAME = "SFC2"
 ORG_NAME = "SFC2"
 
-# Windows で使用できないファイル名文字
+# OS (Windows / Mac / Linux) で共通して使用を避けるべきファイル名文字
+# （Windowsの禁止文字に加え、Mac/Linuxのパス区切りや予約文字を網羅）
 INVALID_FILENAME_CHARS = '\\/:*?"<>|'
 
 # カテゴリごとの拡張子

@@ -3,7 +3,8 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import QUrl
+from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -20,6 +21,7 @@ from services.bitrate_calculator import parse_target_size
 from services.conversion_worker import ConversionWorker
 from services.ffmpeg_locator import find_ffmpeg
 from services.media_probe import probe_image, probe_media
+from settings.app_settings import get_open_file_after, get_open_folder_after
 from utils.file_type_detector import (
     CATEGORY_AUDIO,
     CATEGORY_IMAGE,
@@ -284,6 +286,12 @@ class MainWindow(QMainWindow):
         if success:
             self._progress_widget.set_progress(100)
             self._status_label.setText(tr("conversion_complete_status", path=output_path))
+            
+            if get_open_file_after():
+                QDesktopServices.openUrl(QUrl.fromLocalFile(output_path))
+            if get_open_folder_after():
+                QDesktopServices.openUrl(QUrl.fromLocalFile(str(Path(output_path).parent)))
+
             QMessageBox.information(
                 self, tr("conversion_complete_title"), tr("conversion_complete_message", path=output_path)
             )
@@ -320,6 +328,14 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         if self._worker is not None and self._worker.isRunning():
-            self._worker.terminate()
-            self._worker.wait(2000)
+            # 1. ワーカースレッドへ安全な停止（中断）を要求
+            self._worker.requestInterruption()
+            self._worker.quit()
+
+            # 2. 2秒間（2000ミリ秒）正常終了を待つ
+            # タイムアウトした場合のみ、最終手段として強制終了
+            if not self._worker.wait(2000):
+                self._worker.terminate()
+                self._worker.wait()  # 強制終了の完了を確実に待つ
+
         super().closeEvent(event)

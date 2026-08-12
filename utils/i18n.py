@@ -66,6 +66,9 @@ TRANSLATIONS = {
     "language_ja": {"ja": "日本語", "en": "Japanese"},
     "language_en": {"ja": "英語", "en": "English"},
     "app_settings_title": {"ja": "アプリの設定", "en": "App Settings"},
+    "post_conversion_group": {"ja": "変換後の動作", "en": "Post-Conversion Actions"},
+    "open_file_after": {"ja": "変換したファイルをデフォルトのアプリで開く", "en": "Open converted file with default app"},
+    "open_folder_after": {"ja": "変換後のフォルダを自動で開く", "en": "Open output folder after conversion"},
 
     # エラー・確認メッセージ
     "error_title": {"ja": "エラー", "en": "Error"},

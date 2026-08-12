@@ -7,6 +7,8 @@ from utils.constants import APP_NAME, DEFAULT_LANGUAGE, ORG_NAME
 
 _KEY_FFMPEG_PATH = "ffmpeg/custom_path"
 _KEY_LANGUAGE = "ui/language"
+_KEY_OPEN_FILE = "post_conversion/open_file"
+_KEY_OPEN_FOLDER = "post_conversion/open_folder"
 
 
 def _settings() -> QSettings:
@@ -28,3 +30,21 @@ def get_language() -> str:
 
 def set_language(language: str) -> None:
     _settings().setValue(_KEY_LANGUAGE, language)
+
+
+def get_open_file_after() -> bool:
+    # QSettings returns str ('true'/'false') on some platforms if saved dynamically,
+    # but type=bool handles it safely. We can default to False.
+    return _settings().value(_KEY_OPEN_FILE, False, type=bool)
+
+
+def set_open_file_after(value: bool) -> None:
+    _settings().setValue(_KEY_OPEN_FILE, value)
+
+
+def get_open_folder_after() -> bool:
+    return _settings().value(_KEY_OPEN_FOLDER, False, type=bool)
+
+
+def set_open_folder_after(value: bool) -> None:
+    _settings().setValue(_KEY_OPEN_FOLDER, value)
