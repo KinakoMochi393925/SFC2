@@ -1,7 +1,8 @@
 # ビルド成果物・自動生成フォルダの除外
 dist/
 build/
-logs/
+logs/*
+!logs/.gitkeep
 
 # Pythonのキャッシュ除外
 __pycache__/
