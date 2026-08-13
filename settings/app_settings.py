@@ -14,6 +14,9 @@ _KEY_DEFAULT_VIDEO_FORMAT = "default_formats/video"
 _KEY_DEFAULT_AUDIO_FORMAT = "default_formats/audio"
 _KEY_DEFAULT_IMAGE_FORMAT = "default_formats/image"
 
+_KEY_INCLUDE_SUBFOLDERS = "post_conversion/include_subfolders"
+
+
 
 def _settings() -> QSettings:
     return QSettings(ORG_NAME, APP_NAME)
@@ -79,3 +82,11 @@ def get_default_image_format() -> Optional[str]:
 
 def set_default_image_format(format_str: str) -> None:
     _settings().setValue(_KEY_DEFAULT_IMAGE_FORMAT, format_str)
+
+
+def get_include_subfolders() -> bool:
+    return _settings().value(_KEY_INCLUDE_SUBFOLDERS, False, type=bool)
+
+
+def set_include_subfolders(value: bool) -> None:
+    _settings().setValue(_KEY_INCLUDE_SUBFOLDERS, value)

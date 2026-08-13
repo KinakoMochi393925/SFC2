@@ -69,6 +69,13 @@ TRANSLATIONS = {
     "post_conversion_group": {"ja": "変換後の動作", "en": "Post-Conversion Actions"},
     "open_file_after": {"ja": "変換したファイルをデフォルトのアプリで開く", "en": "Open converted file with default app"},
     "open_folder_after": {"ja": "変換後のフォルダを自動で開く", "en": "Open output folder after conversion"},
+    "include_subfolders": {"ja": "フォルダ追加時にサブフォルダを含める", "en": "Include subfolders when adding folders"},
+
+    # ファイルリスト
+    "list_title": {"ja": "変換対象", "en": "Files to Convert"},
+    "list_delete": {"ja": "削除", "en": "Delete"},
+    "list_clear_all": {"ja": "全削除", "en": "Clear All"},
+
 
     # 既定の変換先
     "default_format_group": {"ja": "既定の変換先フォーマット", "en": "Default Output Formats"},
@@ -105,10 +112,26 @@ TRANSLATIONS = {
         "en": "Conversion completed.\n\n{path}",
     },
     "conversion_complete_status": {"ja": "変換が完了しました: {path}", "en": "Conversion completed: {path}"},
+    "batch_conversion_complete_status": {"ja": "すべての変換が完了しました", "en": "All conversions completed"},
+    "batch_conversion_complete_with_errors": {"ja": "一部のファイルの変換に失敗しました", "en": "Some conversions failed"},
+    "batch_converting_status": {"ja": "変換中... ({current}/{total})", "en": "Converting... ({current}/{total})"},
     "conversion_failed_status": {"ja": "変換に失敗しました。", "en": "Conversion failed."},
     "conversion_failed_message": {
         "ja": "変換に失敗しました。\n\n{error}",
         "en": "Conversion failed.\n\n{error}",
+    },
+    "conversion_complete_with_errors_title": {"ja": "変換完了（一部エラー）", "en": "Conversion Complete (with errors)"},
+    "conversion_complete_with_errors_message": {
+        "ja": "変換が完了しましたが、以下のファイルはエラーのためスキップされました：\n\n{errors}",
+        "en": "Conversion completed, but the following files were skipped due to errors:\n\n{errors}",
+    },
+    "batch_conversion_complete_message": {
+        "ja": "すべてのファイルの変換が完了しました。",
+        "en": "All files have been converted successfully.",
+    },
+    "error_default_format_missing": {
+        "ja": "複数の種類のファイルが含まれていますが、以下の種類の既定の変換先が設定されていません。\n\n{missing_types}\n\n設定画面から既定の変換先を設定してください。",
+        "en": "Multiple file types are included, but default output formats are not set for the following types:\n\n{missing_types}\n\nPlease set default output formats in the settings.",
     },
 
     # 無理な圧縮の警告

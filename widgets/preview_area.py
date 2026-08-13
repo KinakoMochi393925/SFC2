@@ -30,7 +30,7 @@ _LOADED_STYLE = (
 
 
 class PreviewArea(QWidget):
-    file_selected = pyqtSignal(str)
+    files_selected = pyqtSignal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -81,9 +81,9 @@ class PreviewArea(QWidget):
         super().mousePressEvent(event)
 
     def _open_file_dialog(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self)
-        if path:
-            self.file_selected.emit(path)
+        paths, _ = QFileDialog.getOpenFileNames(self)
+        if paths:
+            self.files_selected.emit(paths)
 
     def _retranslate_ui(self, _lang=None) -> None:
         self._placeholder.setText(tr("drop_placeholder"))
@@ -99,7 +99,6 @@ class PreviewArea(QWidget):
         urls = event.mimeData().urls()
         if not urls:
             return
-        # 単一ファイルのみ受け付ける
-        path = urls[0].toLocalFile()
-        if path:
-            self.file_selected.emit(path)
+        paths = [url.toLocalFile() for url in urls if url.isLocalFile()]
+        if paths:
+            self.files_selected.emit(paths)

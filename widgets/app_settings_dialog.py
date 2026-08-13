@@ -23,6 +23,8 @@ from settings.app_settings import (
     set_default_audio_format,
     get_default_image_format,
     set_default_image_format,
+    get_include_subfolders,
+    set_include_subfolders,
 )
 from utils.constants import LANGUAGE_EN, LANGUAGE_JA, VIDEO_OUTPUT_FORMATS, AUDIO_OUTPUT_FORMATS, IMAGE_OUTPUT_FORMATS
 from utils.i18n import LanguageManager, tr
@@ -62,8 +64,11 @@ class AppSettingsDialog(QDialog):
         self._open_file_check.setChecked(get_open_file_after())
         self._open_folder_check = QCheckBox()
         self._open_folder_check.setChecked(get_open_folder_after())
+        self._include_subfolders_check = QCheckBox()
+        self._include_subfolders_check.setChecked(get_include_subfolders())
         post_conversion_layout.addWidget(self._open_file_check)
         post_conversion_layout.addWidget(self._open_folder_check)
+        post_conversion_layout.addWidget(self._include_subfolders_check)
 
         self._default_format_group = QGroupBox()
         default_format_layout = QFormLayout(self._default_format_group)
@@ -129,6 +134,7 @@ class AppSettingsDialog(QDialog):
         self._path_widget.save()
         set_open_file_after(self._open_file_check.isChecked())
         set_open_folder_after(self._open_folder_check.isChecked())
+        set_include_subfolders(self._include_subfolders_check.isChecked())
         set_default_video_format(self._video_format_combo.currentData())
         set_default_audio_format(self._audio_format_combo.currentData())
         set_default_image_format(self._image_format_combo.currentData())
@@ -143,6 +149,7 @@ class AppSettingsDialog(QDialog):
         self._post_conversion_group.setTitle(tr("post_conversion_group"))
         self._open_file_check.setText(tr("open_file_after"))
         self._open_folder_check.setText(tr("open_folder_after"))
+        self._include_subfolders_check.setText(tr("include_subfolders"))
         
         self._default_format_group.setTitle(tr("default_format_group"))
         self._video_format_label.setText(tr("default_video_format"))

@@ -8,6 +8,7 @@ from typing import Optional
 class FileInfo:
     path: str
     category: Optional[str]  # "video" / "audio" / "image" / None(未対応)
+    base_dir: Optional[str] = None  # ドラッグ＆ドロップされたルートディレクトリ（サブフォルダ構造維持用）
 
     @property
     def extension(self) -> str:
