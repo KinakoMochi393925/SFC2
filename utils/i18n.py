@@ -73,6 +73,8 @@ TRANSLATIONS = {
 
     # ファイルリスト
     "list_title": {"ja": "変換対象", "en": "Files to Convert"},
+    "list_add_file": {"ja": "ファイルを追加", "en": "Add File"},
+    "list_add_folder": {"ja": "フォルダを追加", "en": "Add Folder"},
     "list_delete": {"ja": "削除", "en": "Delete"},
     "list_clear_all": {"ja": "全削除", "en": "Clear All"},
 

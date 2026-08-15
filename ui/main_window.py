@@ -6,6 +6,7 @@ from typing import Optional
 from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QDesktopServices, QIcon
 from PyQt6.QtWidgets import (
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -29,6 +30,7 @@ from settings.app_settings import (
     get_default_audio_format,
     get_default_image_format,
 )
+from utils.constants import AUDIO_OUTPUT_FORMATS, IMAGE_OUTPUT_FORMATS, VIDEO_OUTPUT_FORMATS
 from utils.file_type_detector import (
     CATEGORY_AUDIO,
     CATEGORY_IMAGE,
@@ -87,6 +89,8 @@ class MainWindow(QMainWindow):
         self._file_list.files_deleted.connect(self._on_files_deleted)
         self._file_list.list_cleared.connect(self._on_list_cleared)
         self._file_list.files_dropped.connect(self._on_files_dropped)
+        self._file_list.add_file_requested.connect(self._on_add_file_requested)
+        self._file_list.add_folder_requested.connect(self._on_add_folder_requested)
         main_layout.addWidget(self._file_list)
 
         right_panel = QWidget()
@@ -143,30 +147,52 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     def _on_files_dropped(self, paths: list[str]) -> None:
         include_subfolders = get_include_subfolders()
+        added_any = False
         for path_str in paths:
             path = Path(path_str)
             if path.is_file():
-                self._add_single_file(path_str, base_dir=str(path.parent))
+                if self._add_single_file(path_str, base_dir=str(path.parent)):
+                    added_any = True
             elif path.is_dir():
-                self._add_folder(path, base_dir=str(path), include_subfolders=include_subfolders)
-        
+                if self._add_folder(path, base_dir=str(path), include_subfolders=include_subfolders):
+                    added_any = True
+
+        if added_any:
+            self._file_list.select_last()
         self._convert_button.setEnabled(len(self._file_list.get_all_files()) > 0)
 
-    def _add_folder(self, folder_path: Path, base_dir: str, include_subfolders: bool) -> None:
+    def _on_add_file_requested(self) -> None:
+        paths, _ = QFileDialog.getOpenFileNames(self)
+        if paths:
+            self._on_files_dropped(paths)
+
+    def _on_add_folder_requested(self) -> None:
+        folder = QFileDialog.getExistingDirectory(self)
+        if folder:
+            self._on_files_dropped([folder])
+
+    def _add_folder(self, folder_path: Path, base_dir: str, include_subfolders: bool) -> bool:
+        """フォルダ内のファイルをリストに追加する。1件以上追加したらTrueを返す。"""
+        added_any = False
         if include_subfolders:
             for root, _, files in os.walk(folder_path):
                 for f in files:
-                    self._add_single_file(os.path.join(root, f), base_dir=base_dir)
+                    if self._add_single_file(os.path.join(root, f), base_dir=base_dir):
+                        added_any = True
         else:
             for child in folder_path.iterdir():
                 if child.is_file():
-                    self._add_single_file(str(child), base_dir=base_dir)
+                    if self._add_single_file(str(child), base_dir=base_dir):
+                        added_any = True
+        return added_any
 
-    def _add_single_file(self, path_str: str, base_dir: str) -> None:
+    def _add_single_file(self, path_str: str, base_dir: str) -> bool:
+        """単一ファイルをリストに追加する。追加したらTrueを返す。"""
         category = detect_category(path_str)
         if category is not None:
             file_info = FileInfo(path=path_str, category=category, base_dir=base_dir)
-            self._file_list.add_file(file_info)
+            return self._file_list.add_file(file_info)
+        return False
 
     def _on_list_selection_changed(self, path: str) -> None:
         category = detect_category(path)
@@ -201,12 +227,22 @@ class MainWindow(QMainWindow):
         self._load_preview(category, path)
 
     def _on_files_deleted(self, deleted_paths: list[str]) -> None:
-        if self._file_info and self._file_info.path in deleted_paths:
+        remaining = self._file_list.get_all_files()
+        if not remaining:
+            # リストが空になったら情報をクリア
             self._reset_selection()
-        self._convert_button.setEnabled(len(self._file_list.get_all_files()) > 0)
+            self._reset_output_settings()
+            self._convert_button.setEnabled(False)
+        elif self._file_info and self._file_info.path in deleted_paths:
+            # 選択中のファイルが削除された場合は選択をリセット（リストは残る）
+            self._reset_selection()
+            self._convert_button.setEnabled(True)
+        else:
+            self._convert_button.setEnabled(True)
 
     def _on_list_cleared(self) -> None:
         self._reset_selection()
+        self._reset_output_settings()
         self._convert_button.setEnabled(False)
 
     @staticmethod
@@ -269,6 +305,12 @@ class MainWindow(QMainWindow):
         self._convert_button.setEnabled(False)
         self._preview_area.show_placeholder()
 
+    def _reset_output_settings(self) -> None:
+        """変換対象が空になったとき、次の追加ファイルから保存先を決め直せるようにする。"""
+        self._output_settings.set_output_dir("")
+        self._output_settings.set_filename_stem("")
+        self._output_settings.set_extension("")
+
     # ------------------------------------------------------------------
     # 変換処理
     # ------------------------------------------------------------------
@@ -325,7 +367,18 @@ class MainWindow(QMainWindow):
                 continue
 
             if len(categories) == 1:
-                out_format = self._conversion_settings.selected_format()
+                # 単一カテゴリ：現在UIで選択されているフォーマットがそのカテゴリに属するか確認
+                ui_format = self._conversion_settings.selected_format()
+                formats_for_cat = {
+                    CATEGORY_VIDEO: VIDEO_OUTPUT_FORMATS,
+                    CATEGORY_AUDIO: AUDIO_OUTPUT_FORMATS,
+                    CATEGORY_IMAGE: IMAGE_OUTPUT_FORMATS,
+                }.get(cat, [])
+                if ui_format in formats_for_cat:
+                    out_format = ui_format
+                else:
+                    # UIのフォーマットがこのカテゴリ向けでない場合（ありえないはずだが保険）
+                    out_format = default_formats.get(cat) or ui_format
             else:
                 out_format = default_formats[cat]
 

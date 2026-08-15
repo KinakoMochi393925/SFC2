@@ -22,25 +22,40 @@ class FileListWidget(QWidget):
     files_deleted = pyqtSignal(list)     # 削除されたパスのリストを通知
     list_cleared = pyqtSignal()          # リストがクリアされたことを通知
     files_dropped = pyqtSignal(list)     # ドロップされたファイルのパスのリストを通知
+    add_file_requested = pyqtSignal()    # 「ファイルを追加」ボタン押下
+    add_folder_requested = pyqtSignal()  # 「フォルダを追加」ボタン押下
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumWidth(200)
         self.setMaximumWidth(350)
-        
+
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
-        
+        self._layout.setSpacing(4)
+
+        # タイトル
         self._title_label = QLabel()
         self._title_label.setStyleSheet("font-weight: bold; color: #222222;")
         self._layout.addWidget(self._title_label)
-        
+
+        # ファイル追加・フォルダ追加ボタン（リストと削除ボタンの間）
+        self._add_file_button = QPushButton()
+        self._add_file_button.clicked.connect(self.add_file_requested)
+        self._add_folder_button = QPushButton()
+        self._add_folder_button.clicked.connect(self.add_folder_requested)
+
+        # ファイル一覧
         self._list_widget = QListWidget()
         self._list_widget.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         self._list_widget.itemSelectionChanged.connect(self._on_selection_changed)
         self.setAcceptDrops(True)
         self._layout.addWidget(self._list_widget)
-        
+
+        self._layout.addWidget(self._add_file_button)
+        self._layout.addWidget(self._add_folder_button)
+
+        # 削除ボタン群
         self._button_layout = QHBoxLayout()
         self._delete_button = QPushButton()
         self._delete_button.setEnabled(False)
@@ -48,28 +63,34 @@ class FileListWidget(QWidget):
         self._clear_button = QPushButton()
         self._clear_button.setEnabled(False)
         self._clear_button.clicked.connect(self._on_clear_clicked)
-        
         self._button_layout.addWidget(self._delete_button)
         self._button_layout.addWidget(self._clear_button)
         self._layout.addLayout(self._button_layout)
-        
+
         LanguageManager.instance().language_changed.connect(self._retranslate_ui)
         self._retranslate_ui()
 
-    def add_file(self, file_info: FileInfo) -> None:
-        """ファイルをリストに追加する。既に存在する場合は無視する。"""
+    def add_file(self, file_info: FileInfo) -> bool:
+        """ファイルをリストに追加する。既に存在する場合は無視する。追加したらTrue。"""
         for i in range(self._list_widget.count()):
             item = self._list_widget.item(i)
             if item is not None:
                 info = item.data(Qt.ItemDataRole.UserRole)
                 if info and isinstance(info, FileInfo) and info.path == file_info.path:
-                    return
-                
+                    return False
+
         item = QListWidgetItem(file_info.name)
         item.setData(Qt.ItemDataRole.UserRole, file_info)
         item.setToolTip(file_info.path)
         self._list_widget.addItem(item)
         self._update_buttons()
+        return True
+
+    def select_last(self) -> None:
+        """最後のアイテムを選択する。"""
+        count = self._list_widget.count()
+        if count > 0:
+            self._list_widget.setCurrentRow(count - 1)
 
     def select_file(self, path: str) -> None:
         """指定したパスのファイルを選択状態にする。"""
@@ -111,7 +132,7 @@ class FileListWidget(QWidget):
         selected_items = self._list_widget.selectedItems()
         if not selected_items:
             return
-            
+
         deleted_paths = []
         self._list_widget.blockSignals(True)
         try:
@@ -124,7 +145,7 @@ class FileListWidget(QWidget):
                 del removed_item
         finally:
             self._list_widget.blockSignals(False)
-            
+
         self._update_buttons()
         self.files_deleted.emit(deleted_paths)
 
@@ -134,7 +155,7 @@ class FileListWidget(QWidget):
             self._list_widget.clear()
         finally:
             self._list_widget.blockSignals(False)
-            
+
         self._update_buttons()
         self.list_cleared.emit()
 
@@ -146,6 +167,8 @@ class FileListWidget(QWidget):
 
     def _retranslate_ui(self, _lang=None) -> None:
         self._title_label.setText(tr("list_title"))
+        self._add_file_button.setText(tr("list_add_file"))
+        self._add_folder_button.setText(tr("list_add_folder"))
         self._delete_button.setText(tr("list_delete"))
         self._clear_button.setText(tr("list_clear_all"))
 
