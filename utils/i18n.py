@@ -70,6 +70,13 @@ TRANSLATIONS = {
     "open_file_after": {"ja": "変換したファイルをデフォルトのアプリで開く", "en": "Open converted file with default app"},
     "open_folder_after": {"ja": "変換後のフォルダを自動で開く", "en": "Open output folder after conversion"},
     "include_subfolders": {"ja": "フォルダ追加時にサブフォルダを含める", "en": "Include subfolders when adding folders"},
+    
+    "context_menu_group": {"ja": "Windows エクスプローラー連携", "en": "Windows Explorer Integration"},
+    "register_context_menu": {"ja": "右クリックメニューに登録", "en": "Add to Context Menu"},
+    "unregister_context_menu": {"ja": "右クリックメニューから解除", "en": "Remove from Context Menu"},
+    "context_menu_registered": {"ja": "右クリックメニューに登録しました。", "en": "Added to context menu."},
+    "context_menu_unregistered": {"ja": "右クリックメニューから解除しました。", "en": "Removed from context menu."},
+    "context_menu_error": {"ja": "設定の変更に失敗しました。", "en": "Failed to change the setting."},
 
     # ファイルリスト
     "list_title": {"ja": "変換対象", "en": "Files to Convert"},

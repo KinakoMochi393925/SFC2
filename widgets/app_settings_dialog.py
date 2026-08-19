@@ -10,6 +10,9 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QFormLayout,
     QLabel,
+    QPushButton,
+    QHBoxLayout,
+    QMessageBox,
 )
 
 from settings.app_settings import (
@@ -111,6 +114,18 @@ class AppSettingsDialog(QDialog):
         default_format_layout.addRow(self._audio_format_label, self._audio_format_combo)
         default_format_layout.addRow(self._image_format_label, self._image_format_combo)
 
+        import os
+        if os.name == "nt":
+            self._context_menu_group = QGroupBox()
+            context_menu_layout = QHBoxLayout(self._context_menu_group)
+            self._register_context_menu_btn = QPushButton()
+            self._unregister_context_menu_btn = QPushButton()
+            context_menu_layout.addWidget(self._register_context_menu_btn)
+            context_menu_layout.addWidget(self._unregister_context_menu_btn)
+            
+            self._register_context_menu_btn.clicked.connect(self._on_register_context_menu)
+            self._unregister_context_menu_btn.clicked.connect(self._on_unregister_context_menu)
+
         self._buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
         self._buttons.accepted.connect(self._on_accept)
 
@@ -119,10 +134,28 @@ class AppSettingsDialog(QDialog):
         layout.addWidget(self._language_group)
         layout.addWidget(self._default_format_group)
         layout.addWidget(self._post_conversion_group)
+        if os.name == "nt":
+            layout.addWidget(self._context_menu_group)
         layout.addWidget(self._buttons)
 
         LanguageManager.instance().language_changed.connect(self._retranslate_ui)
         self._retranslate_ui()
+
+    def _on_register_context_menu(self) -> None:
+        from services.windows_context_menu import register_context_menu
+        try:
+            register_context_menu()
+            QMessageBox.information(self, tr("app_settings_title"), tr("context_menu_registered"))
+        except Exception:
+            QMessageBox.critical(self, tr("error_title"), tr("context_menu_error"))
+
+    def _on_unregister_context_menu(self) -> None:
+        from services.windows_context_menu import unregister_context_menu
+        try:
+            unregister_context_menu()
+            QMessageBox.information(self, tr("app_settings_title"), tr("context_menu_unregistered"))
+        except Exception:
+            QMessageBox.critical(self, tr("error_title"), tr("context_menu_error"))
 
     def _on_language_toggled(self, checked: bool) -> None:
         if not checked:
@@ -150,6 +183,12 @@ class AppSettingsDialog(QDialog):
         self._open_file_check.setText(tr("open_file_after"))
         self._open_folder_check.setText(tr("open_folder_after"))
         self._include_subfolders_check.setText(tr("include_subfolders"))
+        
+        import os
+        if os.name == "nt":
+            self._context_menu_group.setTitle(tr("context_menu_group"))
+            self._register_context_menu_btn.setText(tr("register_context_menu"))
+            self._unregister_context_menu_btn.setText(tr("unregister_context_menu"))
         
         self._default_format_group.setTitle(tr("default_format_group"))
         self._video_format_label.setText(tr("default_video_format"))
