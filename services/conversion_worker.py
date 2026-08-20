@@ -48,6 +48,16 @@ class ConversionWorker(QThread):
         self._settings = settings
         self._process = None
 
+    def stop(self) -> None:
+        """実行中の FFmpeg を停止し、スレッドを自然終了させる。"""
+        self.requestInterruption()
+        process = self._process
+        if process is not None and process.poll() is None:
+            try:
+                process.terminate()
+            except OSError:
+                pass
+
     # ------------------------------------------------------------------
     def run(self) -> None:
         logger = get_logger()
@@ -214,6 +224,9 @@ class ConversionWorker(QThread):
         tail_lines: List[str] = []
 
         for line in self._process.stderr:
+            if self.isInterruptionRequested():
+                self.stop()
+
             tail_lines.append(line)
             if len(tail_lines) > 40:
                 tail_lines.pop(0)
@@ -231,6 +244,10 @@ class ConversionWorker(QThread):
                 self.progress_changed.emit(max(0, min(99, pct)))
 
         returncode = self._process.wait()
+        self._process = None
+
+        if self.isInterruptionRequested():
+            return False
 
         if returncode == 0:
             return True

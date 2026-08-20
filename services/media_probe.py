@@ -11,9 +11,10 @@ from dataclasses import dataclass
 from typing import Optional
 
 from PIL import Image
+from PyQt6.QtCore import QThread, pyqtSignal
 
 _DURATION_RE = re.compile(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)")
-_DIMENSION_RE = re.compile(r"Video:.*?(\d{2,5})x(\d{2,5})")
+_DIMENSION_RE = re.compile(r"Video:.*?(\d+)x(\d+)")
 
 
 @dataclass
@@ -21,6 +22,30 @@ class MediaInfo:
     duration_seconds: Optional[float] = None
     width: Optional[int] = None
     height: Optional[int] = None
+
+
+class MediaProbeWorker(QThread):
+    """メディア情報の取得を UI スレッド外で実行する。"""
+
+    completed = pyqtSignal(str, object)
+
+    def __init__(self, category: str, path: str, ffmpeg_path: Optional[str], parent=None):
+        super().__init__(parent)
+        self._category = category
+        self._path = path
+        self._ffmpeg_path = ffmpeg_path
+
+    def run(self) -> None:
+        try:
+            if self._category == "image":
+                info = probe_image(self._path)
+            elif self._ffmpeg_path:
+                info = probe_media(self._ffmpeg_path, self._path)
+            else:
+                info = MediaInfo()
+        except (OSError, ValueError):
+            info = MediaInfo()
+        self.completed.emit(self._path, info)
 
 
 def probe_image(path: str) -> MediaInfo:
@@ -45,7 +70,11 @@ def probe_media(ffmpeg_path: str, path: str) -> MediaInfo:
     try:
         process = subprocess.Popen(cmd, **popen_kwargs)
         _, stderr_text = process.communicate(timeout=15)
-    except (OSError, subprocess.TimeoutExpired):
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.communicate()
+        return MediaInfo()
+    except OSError:
         return MediaInfo()
 
     info = MediaInfo()
