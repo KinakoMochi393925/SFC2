@@ -142,7 +142,7 @@ class AppSettingsDialog(QDialog):
         self._retranslate_ui()
 
     def _on_register_context_menu(self) -> None:
-        from services.windows_context_menu import register_context_menu
+        from services.context_menu_manager import register_context_menu
         try:
             register_context_menu()
             QMessageBox.information(self, tr("app_settings_title"), tr("context_menu_registered"))
@@ -150,7 +150,7 @@ class AppSettingsDialog(QDialog):
             QMessageBox.critical(self, tr("error_title"), tr("context_menu_error"))
 
     def _on_unregister_context_menu(self) -> None:
-        from services.windows_context_menu import unregister_context_menu
+        from services.context_menu_manager import unregister_context_menu
         try:
             unregister_context_menu()
             QMessageBox.information(self, tr("app_settings_title"), tr("context_menu_unregistered"))

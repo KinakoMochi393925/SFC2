@@ -39,7 +39,9 @@ def run_cli_conversion(paths: Iterable[str]) -> int:
     The conversion itself deliberately remains in :class:`ConversionWorker` so
     FFmpeg invocation, output naming, and error handling are shared with GUI.
     """
-    input_paths = [Path(path) for path in paths]
+    import unicodedata
+
+    input_paths = [Path(unicodedata.normalize("NFC", str(path))) for path in paths]
     if not input_paths or any(not path.exists() or not (path.is_file() or path.is_dir()) for path in input_paths):
         return EXIT_PATH_NOT_FOUND
 

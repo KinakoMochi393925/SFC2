@@ -4,13 +4,15 @@ import sys
 
 def _run_cli(arguments: list[str]) -> int | None:
     """Handle CLI-only commands before importing QApplication."""
-    if not arguments:
+    # Filter out macOS Finder process serial number arguments (e.g. -psn_0_123456)
+    clean_arguments = [arg for arg in arguments if not arg.startswith("-psn_")]
+    if not clean_arguments:
         return None
 
     # Search rather than assuming position zero: Windows launchers may prepend
     # their own arguments, but an explicit conversion request must never fall
     # through to GUI startup.
-    if "--convert" in arguments:
+    if "--convert" in clean_arguments:
         _prepare_cli_console()
         from utils.logger import enable_console_logging
         enable_console_logging()
@@ -23,8 +25,8 @@ def _run_cli(arguments: list[str]) -> int | None:
             run_cli_conversion,
         )
 
-        convert_index = arguments.index("--convert")
-        paths = arguments[convert_index + 1:]
+        convert_index = clean_arguments.index("--convert")
+        paths = clean_arguments[convert_index + 1:]
         if not paths:
             _write_cli_message("The specified file or folder does not exist.", error=True)
             return EXIT_PATH_NOT_FOUND
@@ -40,19 +42,20 @@ def _run_cli(arguments: list[str]) -> int | None:
             EXIT_FFMPEG_NOT_FOUND: "FFmpeg was not found.",
             EXIT_CONVERSION_FAILED: "Conversion failed.",
         }
-        _write_cli_message(messages[result], error=result != EXIT_SUCCESS)
+        _write_cli_message(messages.get(result, "Conversion failed."), error=result != EXIT_SUCCESS)
         _send_enter_to_console()
         return result
 
-    if arguments[0] in {"--register-context-menu", "--unregister-context-menu"}:
+    if clean_arguments[0] in {"--register-context-menu", "--unregister-context-menu"}:
         try:
-            from services.windows_context_menu import register_context_menu, unregister_context_menu
-            if arguments[0] == "--register-context-menu":
+            from services.context_menu_manager import register_context_menu, unregister_context_menu
+            if clean_arguments[0] == "--register-context-menu":
                 register_context_menu()
             else:
                 unregister_context_menu()
             return 0
-        except Exception:
+        except Exception as e:
+            _write_cli_message(f"Failed to update context menu: {e}", error=True)
             return 4
 
     return None
@@ -160,6 +163,7 @@ def main() -> int:
     if cli_result is not None:
         return cli_result
 
+    from pathlib import Path
     from PyQt6.QtGui import QIcon
     from PyQt6.QtWidgets import QApplication
     from ui.style import STYLE_SHEET
@@ -171,7 +175,13 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("SFC2")
     app.setStyleSheet(STYLE_SHEET)
-    app.setWindowIcon(QIcon(resource_path("resources/favicon.ico")))
+
+    icon_file = "resources/favicon.ico" if sys.platform == "win32" else "resources/SFC_cnv.png"
+    icon_path = resource_path(icon_file)
+    if not Path(icon_path).is_file():
+        icon_path = resource_path("resources/favicon.ico")
+    if Path(icon_path).is_file():
+        app.setWindowIcon(QIcon(icon_path))
 
     # メインウィンドウの読み込みはここで行う（重いプレビュー/FFmpeg関連は
     # ウィジェット側で実際に使うタイミングまで遅延初期化される）

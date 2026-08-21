@@ -6,9 +6,20 @@ import sys
 from pathlib import Path
 
 
-def default_executable_path() -> str:
-    """Return the installed executable path (or the current Python entry in development)."""
-    return str(Path(sys.executable if getattr(sys, "frozen", False) else sys.argv[0]).resolve())
+def default_command() -> str:
+    """Build the command string for context menu execution."""
+    if getattr(sys, "frozen", False):
+        executable = str(Path(sys.executable).resolve())
+        return f'"{executable}" --convert "%1"'
+    
+    # In development: run via python interpreter
+    python_exe = str(Path(sys.executable).resolve())
+    # Prefer main.py at project root
+    project_root = Path(__file__).resolve().parent.parent
+    main_script = project_root / "main.py"
+    if not main_script.is_file():
+        main_script = Path(sys.argv[0]).resolve()
+    return f'"{python_exe}" "{main_script}" --convert "%1"'
 
 
 def _get_supported_extensions() -> set[str]:
@@ -16,15 +27,14 @@ def _get_supported_extensions() -> set[str]:
     return VIDEO_EXTENSIONS | AUDIO_EXTENSIONS | IMAGE_EXTENSIONS
 
 
-def register_context_menu(executable_path: str | None = None) -> None:
+def register_context_menu(command_override: str | None = None) -> None:
     """Register ``SFC2で変換`` for supported file types in the current user hive."""
     if os.name != "nt":
         raise OSError("Windows Explorer context menus are only available on Windows.")
 
     import winreg
 
-    executable = executable_path or default_executable_path()
-    command = f'"{executable}" --convert "%1"'
+    command = command_override or default_command()
     
     extensions = _get_supported_extensions()
     
