@@ -114,8 +114,9 @@ class AppSettingsDialog(QDialog):
         default_format_layout.addRow(self._audio_format_label, self._audio_format_combo)
         default_format_layout.addRow(self._image_format_label, self._image_format_combo)
 
-        import os
-        if os.name == "nt":
+        import sys
+        self._supports_context_menu = sys.platform in ("win32", "darwin")
+        if self._supports_context_menu:
             self._context_menu_group = QGroupBox()
             context_menu_layout = QHBoxLayout(self._context_menu_group)
             self._register_context_menu_btn = QPushButton()
@@ -134,7 +135,7 @@ class AppSettingsDialog(QDialog):
         layout.addWidget(self._language_group)
         layout.addWidget(self._default_format_group)
         layout.addWidget(self._post_conversion_group)
-        if os.name == "nt":
+        if self._supports_context_menu:
             layout.addWidget(self._context_menu_group)
         layout.addWidget(self._buttons)
 
@@ -184,8 +185,7 @@ class AppSettingsDialog(QDialog):
         self._open_folder_check.setText(tr("open_folder_after"))
         self._include_subfolders_check.setText(tr("include_subfolders"))
         
-        import os
-        if os.name == "nt":
+        if getattr(self, "_supports_context_menu", False):
             self._context_menu_group.setTitle(tr("context_menu_group"))
             self._register_context_menu_btn.setText(tr("register_context_menu"))
             self._unregister_context_menu_btn.setText(tr("unregister_context_menu"))

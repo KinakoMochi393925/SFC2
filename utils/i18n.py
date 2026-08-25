@@ -71,7 +71,7 @@ TRANSLATIONS = {
     "open_folder_after": {"ja": "変換後のフォルダを自動で開く", "en": "Open output folder after conversion"},
     "include_subfolders": {"ja": "フォルダ追加時にサブフォルダを含める", "en": "Include subfolders when adding folders"},
     
-    "context_menu_group": {"ja": "Windows エクスプローラー連携", "en": "Windows Explorer Integration"},
+    "context_menu_group": {"ja": "右クリックメニュー連携", "en": "Context Menu Integration"},
     "register_context_menu": {"ja": "右クリックメニューに登録", "en": "Add to Context Menu"},
     "unregister_context_menu": {"ja": "右クリックメニューから解除", "en": "Remove from Context Menu"},
     "context_menu_registered": {"ja": "右クリックメニューに登録しました。", "en": "Added to context menu."},

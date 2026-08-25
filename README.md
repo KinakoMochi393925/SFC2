@@ -23,8 +23,8 @@ SFC2 is a media converter and preview desktop application for Windows. It provid
 - **CLI（コマンドライン）モード**
   - GUIを起動せずバックグラウンドで高速一括変換
   - 進行状況（Progress %）のリアルタイム表示と終了コード対応
-- **Windows Explorer 右クリックメニュー連携**
-  - エクスプローラー上のファイルを右クリックして「SFC2で変換」から即座に変換可能
+- **OS 右クリックメニュー連携 (Context Menu / Quick Action)**
+  - Windows（エクスプローラー）や macOS（Finder クイックアクション）からファイルを右クリックして「SFC2で変換」から即座に変換可能
 - **多言語対応 (i18n)**
   - 日本語 / 英語 に対応（設定画面から即時切り替え可能）
 - **永続設定 & 変換後アクション**
