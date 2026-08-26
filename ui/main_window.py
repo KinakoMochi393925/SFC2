@@ -21,7 +21,7 @@ from models.file_info import FileInfo
 from services.bitrate_calculator import parse_target_size
 from services.conversion_worker import ConversionWorker
 from services.ffmpeg_locator import find_ffmpeg
-from services.media_probe import probe_image, probe_media
+from services.media_probe import MediaInfo, MediaProbeWorker, probe_image, probe_media
 from settings.app_settings import (
     get_open_file_after,
     get_open_folder_after,
@@ -60,6 +60,7 @@ class MainWindow(QMainWindow):
 
         self._file_info: Optional[FileInfo] = None
         self._worker: Optional[ConversionWorker] = None
+        self._probe_workers: list[MediaProbeWorker] = []
         self._current_file_size_bytes: int = 0
         self._current_source_size = (None, None)
         self._conversion_queue: list[ConversionSettings] = []
@@ -174,16 +175,19 @@ class MainWindow(QMainWindow):
     def _add_folder(self, folder_path: Path, base_dir: str, include_subfolders: bool) -> bool:
         """フォルダ内のファイルをリストに追加する。1件以上追加したらTrueを返す。"""
         added_any = False
-        if include_subfolders:
-            for root, _, files in os.walk(folder_path):
-                for f in files:
-                    if self._add_single_file(os.path.join(root, f), base_dir=base_dir):
-                        added_any = True
-        else:
-            for child in folder_path.iterdir():
-                if child.is_file():
-                    if self._add_single_file(str(child), base_dir=base_dir):
-                        added_any = True
+        try:
+            if include_subfolders:
+                for root, _, files in os.walk(folder_path):
+                    for f in files:
+                        if self._add_single_file(os.path.join(root, f), base_dir=base_dir):
+                            added_any = True
+            else:
+                for child in folder_path.iterdir():
+                    if child.is_file():
+                        if self._add_single_file(str(child), base_dir=base_dir):
+                            added_any = True
+        except OSError as e:
+            self._show_error(tr("error_file_operation", error=str(e)))
         return added_any
 
     def _add_single_file(self, path_str: str, base_dir: str) -> bool:
@@ -203,16 +207,22 @@ class MainWindow(QMainWindow):
         if not selected_file:
             return
 
+        try:
+            file_size = Path(path).stat().st_size
+        except OSError as e:
+            self._show_error(tr("error_file_operation", error=str(e)))
+            self._reset_selection()
+            return
+
         self._file_info = selected_file
         self._file_label.setText(self._file_info.name)
         self._category_label.setText(category_label(category))
 
-        source_width, source_height = self._probe_source_dimensions(category, path)
-        self._current_file_size_bytes = Path(path).stat().st_size
-        self._current_source_size = (source_width, source_height)
-        self._meta_label.setText(self._format_meta_text(source_width, source_height, self._current_file_size_bytes))
+        self._current_file_size_bytes = file_size
+        self._current_source_size = (None, None)
+        self._meta_label.setText(self._format_meta_text(None, None, file_size))
 
-        self._conversion_settings.set_category(category, source_width, source_height)
+        self._conversion_settings.set_category(category, None, None)
         # Use existing output_dir or file's directory if first time
         current_output_dir = self._output_settings.output_dir()
         if not current_output_dir:
@@ -225,6 +235,7 @@ class MainWindow(QMainWindow):
         self._status_label.setText("")
 
         self._load_preview(category, path)
+        self._start_source_probe(category, path)
 
     def _on_files_deleted(self, deleted_paths: list[str]) -> None:
         remaining = self._file_list.get_all_files()
@@ -266,6 +277,32 @@ class MainWindow(QMainWindow):
         except Exception:
             get_logger().exception("解像度の取得に失敗")
         return None, None
+
+    def _start_source_probe(self, category: str, path: str) -> None:
+        ffmpeg_path = find_ffmpeg() if category == CATEGORY_VIDEO else None
+        worker = MediaProbeWorker(category, path, ffmpeg_path, self)
+        worker.completed.connect(self._on_source_probe_completed)
+        worker.finished.connect(self._on_source_probe_finished)
+        worker.finished.connect(worker.deleteLater)
+        self._probe_workers.append(worker)
+        worker.start()
+
+    def _on_source_probe_completed(self, path: str, info: MediaInfo) -> None:
+        if self._file_info is None or self._file_info.path != path:
+            return
+
+        self._current_source_size = (info.width, info.height)
+        self._meta_label.setText(
+            self._format_meta_text(info.width, info.height, self._current_file_size_bytes)
+        )
+        self._conversion_settings.set_category(
+            self._file_info.category, info.width, info.height
+        )
+
+    def _on_source_probe_finished(self) -> None:
+        worker = self.sender()
+        if isinstance(worker, MediaProbeWorker) and worker in self._probe_workers:
+            self._probe_workers.remove(worker)
 
     def _on_settings_changed(self) -> None:
         if self._file_info is not None:
@@ -391,9 +428,13 @@ class MainWindow(QMainWindow):
             else:
                 out_dir = Path(output_dir_base)
 
-            out_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                out_dir.mkdir(parents=True, exist_ok=True)
+                file_size = Path(f.path).stat().st_size
+            except OSError as e:
+                self._show_error(tr("error_file_operation", error=str(e)))
+                return
 
-            file_size = Path(f.path).stat().st_size
             target_size = target_size_bytes_global
             if target_size and target_size >= file_size:
                 target_size = None
@@ -425,6 +466,11 @@ class MainWindow(QMainWindow):
         self._start_next_conversion()
 
     def _start_next_conversion(self) -> None:
+        if getattr(self, '_worker', None) is not None:
+            self._worker.wait()
+            self._worker.deleteLater()
+            self._worker = None
+
         if not self._conversion_queue:
             self._convert_button.setEnabled(True)
             self._progress_widget.set_progress(100)
@@ -514,14 +560,11 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         if self._worker is not None and self._worker.isRunning():
-            # 1. ワーカースレッドへ安全な停止（中断）を要求
-            self._worker.requestInterruption()
-            self._worker.quit()
+            self._worker.stop()
+            self._worker.wait()
 
-            # 2. 2秒間（2000ミリ秒）正常終了を待つ
-            # タイムアウトした場合のみ、最終手段として強制終了
-            if not self._worker.wait(2000):
-                self._worker.terminate()
-                self._worker.wait()  # 強制終了の完了を確実に待つ
+        for probe_worker in self._probe_workers:
+            if probe_worker.isRunning():
+                probe_worker.wait()
 
         super().closeEvent(event)
