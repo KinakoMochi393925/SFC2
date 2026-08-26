@@ -60,3 +60,41 @@ def probe_media(ffmpeg_path: str, path: str) -> MediaInfo:
         info.height = int(dimension_match.group(2))
 
     return info
+
+
+def extract_audio_thumbnail(ffmpeg_path: str, path: str) -> Optional[bytes]:
+    """音声ファイルに埋め込まれているカバーアート/サムネイル画像を抽出してPNGバイナリとして返す。
+
+    画像が存在しない場合や抽出に失敗した場合は None を返す。
+    """
+    cmd = [
+        ffmpeg_path,
+        "-hide_banner",
+        "-i",
+        path,
+        "-an",
+        "-vframes",
+        "1",
+        "-c:v",
+        "png",
+        "-f",
+        "image2pipe",
+        "-",
+    ]
+    popen_kwargs = dict(
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    if sys.platform == "win32":
+        popen_kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
+    try:
+        process = subprocess.Popen(cmd, **popen_kwargs)
+        stdout_data, _ = process.communicate(timeout=10)
+        if process.returncode == 0 and stdout_data:
+            return stdout_data
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+    return None
+
