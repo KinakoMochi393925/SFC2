@@ -26,4 +26,16 @@ def find_ffmpeg() -> Optional[str]:
     if custom_path and Path(custom_path).is_file():
         return custom_path
 
+    # 3. macOS / Linux 標準インストールパスへのフォールバック
+    # （GUI アプリ起動時は PATH に Homebrew 等が含まれない場合があるため）
+    fallback_paths = [
+        "/opt/homebrew/bin/ffmpeg",  # macOS Apple Silicon (Homebrew)
+        "/usr/local/bin/ffmpeg",     # macOS Intel (Homebrew) / Linux manual install
+        "/opt/local/bin/ffmpeg",     # macOS MacPorts
+        "/usr/bin/ffmpeg",           # Linux system package
+    ]
+    for candidate in fallback_paths:
+        if Path(candidate).is_file():
+            return candidate
+
     return None

@@ -15,8 +15,10 @@ venv/
 # 環境変数・秘密情報（もし作成している場合）
 .env
 
-/tests
+tests/
 
-/installer
+installer/
 
-/output
+output/
+.exe
+.iss

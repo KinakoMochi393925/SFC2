@@ -33,6 +33,19 @@ def get_logger() -> logging.Logger:
     return _logger
 
 
+def enable_console_logging() -> None:
+    """Also send application logs to stderr for an interactive CLI invocation."""
+    logger = get_logger()
+    if any(getattr(handler, "_sfc2_cli_handler", False) for handler in logger.handlers):
+        return
+
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler._sfc2_cli_handler = True
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+    logger.addHandler(console_handler)
+
+
 def install_excepthook() -> None:
     """未捕捉例外をすべてログに記録する。"""
 

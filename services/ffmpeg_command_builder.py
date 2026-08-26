@@ -12,6 +12,9 @@ from services.bitrate_calculator import BitratePlan
 # 動画ソースから音声のみを抜き出す（映像を除去する）フォーマット
 AUDIO_ONLY_FORMATS = {"wav", "mp3", "m4a", "ogg", "flac"}
 
+# カバーアート（埋め込みサムネイル画像）の保持に対応している音声フォーマット
+AUDIO_COVER_ART_FORMATS = {"mp3", "m4a", "flac"}
+
 # フォーマット名 -> (出力拡張子, 映像コーデック, 音声コーデック, GIFかどうか)
 # 2パスエンコード時は1回目(-f null)と2回目で同じコーデックを使う必要があるため、
 # すべてのコンテナに対して明示的にコーデックを指定する
@@ -89,6 +92,14 @@ def build_command(
 
     if is_audio_only_output:
         cmd += ["-vn"]
+    elif settings.category == "audio":
+        out_fmt = settings.output_format.lower()
+        if out_fmt in AUDIO_COVER_ART_FORMATS:
+            cmd += ["-map", "0:a", "-map", "0:v?", "-c:v", "copy"]
+            if out_fmt == "mp3":
+                cmd += ["-id3v2_version", "3"]
+        else:
+            cmd += ["-vn"]
     elif "video_codec" in info:
         cmd += ["-c:v", info["video_codec"]]
 
