@@ -16,7 +16,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 from models.conversion_settings import ConversionSettings
 from services.bitrate_calculator import BitratePlan, calculate_bitrate_plan
-from services.ffmpeg_command_builder import build_command, get_output_extension, needs_two_pass
+from services.ffmpeg_command_builder import FORMAT_INFO, build_command, get_output_extension, needs_two_pass
 from services.media_probe import probe_media
 from utils.constants import PRIORITY_QUALITY
 from utils.filename_utils import generate_unique_output_path
@@ -135,14 +135,20 @@ class ConversionWorker(QThread):
 
         self._known_duration = media_info.duration_seconds
 
+        video_codec = None
+        if settings.category == "video":
+            info = FORMAT_INFO.get(settings.output_format.lower(), {})
+            video_codec = info.get("video_codec")
+
         plan = calculate_bitrate_plan(
             target_size_bytes=settings.target_size_bytes,
             duration_seconds=media_info.duration_seconds,
             priority=settings.priority or PRIORITY_QUALITY,
             source_width=media_info.width,
             source_height=media_info.height,
-            source_fps=None,
+            source_fps=media_info.fps,
             audio_only=(settings.category == "audio"),
+            video_codec=video_codec,
         )
 
         if plan.is_critical:

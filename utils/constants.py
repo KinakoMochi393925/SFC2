@@ -52,16 +52,24 @@ DEFAULT_LANGUAGE = LANGUAGE_JA
 PRIORITY_QUALITY = "quality"  # 画質優先（音声ビットレートを削る）
 PRIORITY_AUDIO = "audio"  # 音声優先（映像ビットレート/解像度/fpsを削る）
 
-# BPP (Bits Per Pixel Frame) のしきい値
-BPP_SAFE_MIN = 0.05
-BPP_TARGET_MIN = 0.07
-BPP_CRITICAL_MIN = 0.03
+# コーデック別の BPP (Bits Per Pixel Frame) 安全しきい値
+# 圧縮効率の高いコーデックは低い BPP でも高画質を維持可能
+CODEC_BPP_SAFE_MAP = {
+    "libaom-av1": 0.030,
+    "libvpx-vp9": 0.040,
+    "libx264": 0.050,
+    "mpeg4": 0.075,
+    "wmv2": 0.075,
+}
+DEFAULT_BPP_SAFE_MIN = 0.05
+DEFAULT_BPP_CRITICAL_MIN = 0.025
+
+# 段階的に下げるfps・解像度短辺/長辺基準
+FPS_STEPS = [60, 30, 24]
+TARGET_SHORT_SIDES = [1080, 720, 480, 360]
 
 # 画質優先/音声優先の音声ビットレート範囲 (bps)
 AUDIO_BITRATE_QUALITY_PRIORITY = (48_000, 64_000)
 AUDIO_BITRATE_AUDIO_PRIORITY = (128_000, 192_000)
-
-# 段階的に下げるfps・解像度の候補
-FPS_STEPS = [60, 30, 24]
-RESOLUTION_STEPS = [(1920, 1080), (1280, 720), (854, 480), (640, 360)]
+AUDIO_BITRATE_MIN_FALLBACK = 32_000  # 超低ビットレート時の音声最低保証
 

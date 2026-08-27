@@ -14,7 +14,8 @@ from PIL import Image
 from PyQt6.QtCore import QThread, pyqtSignal
 
 _DURATION_RE = re.compile(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)")
-_DIMENSION_RE = re.compile(r"Video:.*?(\d+)x(\d+)")
+_DIMENSION_RE = re.compile(r"Video:.*?(?:,\s*|\s+)(\d{2,5})x(\d{2,5})")
+_FPS_RE = re.compile(r"Video:.*?(?:,\s*|\s+)(\d+(?:\.\d+)?)\s*fps")
 
 
 @dataclass
@@ -22,6 +23,7 @@ class MediaInfo:
     duration_seconds: Optional[float] = None
     width: Optional[int] = None
     height: Optional[int] = None
+    fps: Optional[float] = None
 
 
 class MediaProbeWorker(QThread):
@@ -51,11 +53,11 @@ class MediaProbeWorker(QThread):
 def probe_image(path: str) -> MediaInfo:
     """Pillow で画像の解像度を取得する。"""
     with Image.open(path) as img:
-        return MediaInfo(duration_seconds=None, width=img.width, height=img.height)
+        return MediaInfo(duration_seconds=None, width=img.width, height=img.height, fps=None)
 
 
 def probe_media(ffmpeg_path: str, path: str) -> MediaInfo:
-    """FFmpeg のメタ情報表示（stderr）から動画の解像度・再生時間を取得する。"""
+    """FFmpeg のメタ情報表示（stderr）から動画の解像度・再生時間・fpsを取得する。"""
     cmd = [ffmpeg_path, "-hide_banner", "-i", path]
     popen_kwargs = dict(
         stdout=subprocess.DEVNULL,
@@ -87,6 +89,13 @@ def probe_media(ffmpeg_path: str, path: str) -> MediaInfo:
     if dimension_match:
         info.width = int(dimension_match.group(1))
         info.height = int(dimension_match.group(2))
+
+    fps_match = _FPS_RE.search(stderr_text)
+    if fps_match:
+        try:
+            info.fps = float(fps_match.group(1))
+        except ValueError:
+            pass
 
     return info
 

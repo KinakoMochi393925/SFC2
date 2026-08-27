@@ -3,8 +3,8 @@
 処理の流れ:
   1. 目標合計ビットレート = 目標サイズ(bytes)*8 / 動画長(秒) * 0.95
   2. 優先度に応じて音声ビットレートを確保し、残りを映像に割り振る
-  3. BPP (映像ビットレート / (幅*高さ*fps)) が閾値を下回る場合、
-     fps → 解像度の順に段階的に下げて安全域まで調整する
+  3. BPP (映像ビットレート / (幅*高さ*fps)) が安全閾値を下回る場合、
+     アスペクト比を維持したまま解像度・fpsを段階的に下げて調整する
   4. 最低ラインまで下げてもなお危険域の場合は警告フラグを立てる
 """
 import re
@@ -13,13 +13,15 @@ from typing import Optional
 
 from utils.constants import (
     AUDIO_BITRATE_AUDIO_PRIORITY,
+    AUDIO_BITRATE_MIN_FALLBACK,
     AUDIO_BITRATE_QUALITY_PRIORITY,
-    BPP_CRITICAL_MIN,
-    BPP_SAFE_MIN,
+    CODEC_BPP_SAFE_MAP,
+    DEFAULT_BPP_CRITICAL_MIN,
+    DEFAULT_BPP_SAFE_MIN,
     FPS_STEPS,
     PRIORITY_AUDIO,
     PRIORITY_QUALITY,
-    RESOLUTION_STEPS,
+    TARGET_SHORT_SIDES,
 )
 
 _SIZE_RE = re.compile(r"^\s*([0-9]+(?:\.[0-9]+)?)\s*(mb|gb|kb|m|g|k)?\s*$", re.IGNORECASE)
@@ -62,28 +64,70 @@ class BitratePlan:
     warning_message_key: Optional[str] = None
 
 
+def _build_resolution_candidates(width: int, height: int) -> list[tuple[int, int]]:
+    """元のアスペクト比を維持しながら段階的な解像度候補を生成する（偶数ピクセル保証）。"""
+    candidates = [(width, height)]
+    min_side = min(width, height)
+    aspect_ratio = width / height
+
+    for target_short in TARGET_SHORT_SIDES:
+        if target_short >= min_side:
+            continue
+        if width >= height:  # 横長
+            new_h = target_short
+            new_w = int(round(new_h * aspect_ratio))
+        else:  # 縦長
+            new_w = target_short
+            new_h = int(round(new_w / aspect_ratio))
+
+        # エンコーダ互換性のために偶数ピクセルに丸める
+        new_w = new_w + (new_w % 2)
+        new_h = new_h + (new_h % 2)
+
+        if (new_w, new_h) not in candidates and new_w > 0 and new_h > 0:
+            candidates.append((new_w, new_h))
+
+    return candidates
+
+
+def _build_fps_candidates(source_fps: Optional[float]) -> list[float]:
+    """元fps以下のfps候補リストを生成する（降順）。"""
+    if not source_fps or source_fps <= 0:
+        return [30.0, 24.0]
+
+    fps_list = []
+    fps_list.append(source_fps)
+    for f in FPS_STEPS:
+        if f < source_fps and f not in fps_list:
+            fps_list.append(float(f))
+
+    if not fps_list:
+        fps_list = [source_fps]
+    return fps_list
+
+
 def _fit_bpp_video(
-    video_bitrate_bps: int, width: int, height: int, source_fps: Optional[float]
+    video_bitrate_bps: int,
+    width: int,
+    height: int,
+    source_fps: Optional[float],
+    safe_bpp: float = DEFAULT_BPP_SAFE_MIN,
 ) -> tuple[int, int, int, float]:
-    """fps→解像度の順に段階的に下げ、BPPが安全域に収まるパラメータを探す。"""
-    fps_candidates = [f for f in FPS_STEPS if source_fps is None or f <= source_fps] or [FPS_STEPS[-1]]
-    if source_fps and source_fps < fps_candidates[0]:
-        fps_candidates = [source_fps] + fps_candidates
+    """高解像度・高fpsから探索し、BPPが安全域に収まるパラメータを探す。"""
+    fps_candidates = _build_fps_candidates(source_fps)
+    resolution_candidates = _build_resolution_candidates(width, height)
 
-    resolution_candidates = [(w, h) for (w, h) in RESOLUTION_STEPS if w <= width or h <= height]
-    if not resolution_candidates or resolution_candidates[0] != (width, height):
-        resolution_candidates = [(width, height)] + resolution_candidates
+    best_candidate = None  # 最も高いBPPを持つフォールバック候補
 
-    best = None
     for w, h in resolution_candidates:
         for fps in fps_candidates:
             bpp = video_bitrate_bps / (w * h * fps)
-            if best is None or bpp > best[3]:
-                best = (w, h, fps, bpp)
-            if bpp >= BPP_SAFE_MIN:
+            if best_candidate is None or bpp > best_candidate[3]:
+                best_candidate = (w, h, int(round(fps)), bpp)
+            if bpp >= safe_bpp:
                 return (w, h, int(round(fps)), bpp)
-    # 安全域に収まらなくても、最も良い組み合わせを返す
-    return best
+
+    return best_candidate
 
 
 def calculate_bitrate_plan(
@@ -94,8 +138,10 @@ def calculate_bitrate_plan(
     source_height: Optional[int],
     source_fps: Optional[float] = None,
     audio_only: bool = False,
+    video_codec: Optional[str] = None,
 ) -> BitratePlan:
     """目標ファイルサイズ・優先度から映像/音声ビットレート等を算出する。"""
+    # 5%のマージンを引いて目標ビットレートを算出
     total_bitrate_bps = (target_size_bytes * 8 / duration_seconds) * 0.95
 
     if priority == PRIORITY_AUDIO:
@@ -104,7 +150,7 @@ def calculate_bitrate_plan(
         audio_min, audio_max = AUDIO_BITRATE_QUALITY_PRIORITY
 
     if audio_only:
-        audio_bitrate = int(min(audio_max, max(audio_min, total_bitrate_bps)))
+        audio_bitrate = int(min(audio_max, max(AUDIO_BITRATE_MIN_FALLBACK, total_bitrate_bps)))
         return BitratePlan(
             video_bitrate_bps=None,
             audio_bitrate_bps=audio_bitrate,
@@ -115,24 +161,33 @@ def calculate_bitrate_plan(
             is_critical=False,
         )
 
-    # 音声ビットレートを確保し、残りを映像に割り振る
-    audio_bitrate = int(min(audio_max, audio_min))
+    # 音声ビットレートの配分（超低ビットレート時に映像ビットレートが枯渇しないよう動的に調整）
     if priority == PRIORITY_AUDIO:
-        audio_bitrate = int(min(audio_max, max(audio_min, total_bitrate_bps * 0.25)))
-        audio_bitrate = max(audio_min, min(audio_bitrate, audio_max))
+        # 音声優先時は全体の30%〜40%を割り当て（最大192kbps、最低32kbps）
+        target_audio = total_bitrate_bps * 0.35
+        # 映像に最低50%残せるよう調整
+        max_audio_allowed = max(AUDIO_BITRATE_MIN_FALLBACK, total_bitrate_bps * 0.5)
+        audio_bitrate = int(min(audio_max, max(AUDIO_BITRATE_MIN_FALLBACK, min(target_audio, max_audio_allowed))))
     else:
-        audio_bitrate = audio_min
+        # 画質優先時は最小限の音声ビットレートを確保（全体の最大20%程度までに抑える）
+        max_audio_allowed = max(AUDIO_BITRATE_MIN_FALLBACK, total_bitrate_bps * 0.2)
+        audio_bitrate = int(min(audio_min, max(AUDIO_BITRATE_MIN_FALLBACK, max_audio_allowed)))
 
     video_bitrate = max(1, int(total_bitrate_bps - audio_bitrate))
 
     width = source_width or 1920
     height = source_height or 1080
-    fps = source_fps or 30
+    fps = source_fps or 30.0
 
-    fitted_width, fitted_height, fitted_fps, bpp = _fit_bpp_video(video_bitrate, width, height, fps)
+    safe_bpp = CODEC_BPP_SAFE_MAP.get(video_codec, DEFAULT_BPP_SAFE_MIN)
+    critical_bpp = safe_bpp * 0.5
 
-    is_critical = bpp < BPP_CRITICAL_MIN
-    warning_key = "size_warning_message" if bpp < BPP_SAFE_MIN else None
+    fitted_width, fitted_height, fitted_fps, bpp = _fit_bpp_video(
+        video_bitrate, width, height, fps, safe_bpp=safe_bpp
+    )
+
+    is_critical = bpp < critical_bpp
+    warning_key = "size_warning_message" if bpp < safe_bpp else None
 
     return BitratePlan(
         video_bitrate_bps=video_bitrate,

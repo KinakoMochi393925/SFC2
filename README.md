@@ -33,8 +33,6 @@ SFC2 is a media converter and preview desktop application for Windows. It provid
   - カテゴリ別（動画/音声/画像）のデフォルト出力形式設定
   - フォルダ追加時のサブフォルダ再帰探索の切り替え
   - 変換完了後のファイル自動オープン / 保存先フォルダ表示
-- **堅牢なロギング**
-  - 未捕捉例外のキャッチおよび `logs/app.log` へのローテーションログ記録
 
 ---
 
