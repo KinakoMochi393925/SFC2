@@ -123,6 +123,7 @@ class MainWindow(QMainWindow):
         root.addWidget(self._conversion_settings)
 
         self._output_settings = OutputSettingsWidget()
+        self._output_settings.filename_changed.connect(self._on_output_filename_changed)
         root.addWidget(self._output_settings)
 
         self._convert_button = QPushButton()
@@ -228,7 +229,8 @@ class MainWindow(QMainWindow):
         if not current_output_dir:
             self._output_settings.set_output_dir(self._file_info.directory)
             
-        self._output_settings.set_filename_stem(default_output_stem(path))
+        stem = self._file_info.output_stem if self._file_info.output_stem is not None else default_output_stem(path)
+        self._output_settings.set_filename_stem(stem)
         self._output_settings.set_extension(self._conversion_settings.selected_format())
 
         self._progress_widget.reset()
@@ -303,6 +305,10 @@ class MainWindow(QMainWindow):
         worker = self.sender()
         if isinstance(worker, MediaProbeWorker) and worker in self._probe_workers:
             self._probe_workers.remove(worker)
+
+    def _on_output_filename_changed(self, text: str) -> None:
+        if self._file_info is not None:
+            self._file_info.output_stem = text.strip()
 
     def _on_settings_changed(self) -> None:
         if self._file_info is not None:
@@ -398,6 +404,11 @@ class MainWindow(QMainWindow):
         width, height = self._conversion_settings.selected_resolution()
         priority = self._conversion_settings.selected_priority()
 
+        if self._file_info is not None:
+            current_stem = self._output_settings.filename_stem()
+            if current_stem:
+                self._file_info.output_stem = current_stem
+
         for f in files:
             cat = f.category
             if cat is None:
@@ -439,7 +450,13 @@ class MainWindow(QMainWindow):
             if target_size and target_size >= file_size:
                 target_size = None
 
-            stem = sanitize_filename(default_output_stem(f.path))
+            if f.output_stem:
+                stem = sanitize_filename(f.output_stem)
+            else:
+                stem = sanitize_filename(default_output_stem(f.path))
+
+            if not stem:
+                stem = sanitize_filename(default_output_stem(f.path))
             if not stem:
                 continue
 

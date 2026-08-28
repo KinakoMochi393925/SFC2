@@ -1,4 +1,5 @@
 """保存先フォルダと出力ファイル名を設定するウィジェット。"""
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QFileDialog,
     QFormLayout,
@@ -12,6 +13,8 @@ from utils.i18n import LanguageManager, tr
 
 
 class OutputSettingsWidget(QWidget):
+    filename_changed = pyqtSignal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -24,6 +27,7 @@ class OutputSettingsWidget(QWidget):
         dir_layout.addWidget(self._browse_button)
 
         self._filename_edit = QLineEdit()
+        self._filename_edit.textEdited.connect(self.filename_changed)
         self._extension_field = QLineEdit()
         self._extension_field.setReadOnly(True)
         self._extension_field.setFixedWidth(70)
