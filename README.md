@@ -1,6 +1,6 @@
 # SFC2 - メディア変換アプリ
 
-動画・音声・画像ファイルのフォーマット変換とアプリ内プレビューができる Windows 11 / 10 向けGUIデスクトップアプリです。  
+動画・音声・画像ファイルのフォーマット変換とアプリ内プレビューができるパソコン向けGUIデスクトップアプリです。  
 GUIによる直感的な操作に加え、CLI（コマンドライン）からのヘッドレス一括変換や、Windows Explorer の右クリックメニュー連携にも対応しています。
 
 SFC2 is a media converter and preview desktop application for Windows. It provides a simple GUI as well as a headless CLI mode and Windows Explorer context-menu integration for converting video, audio, and image files.
@@ -143,7 +143,7 @@ SFC2.exe --unregister-context-menu
 
 ```bash
 pip install pyinstaller
-pyinstaller SFC2.spec
+pyinstaller SFC2_win.spec
 ```
 生成された実行ファイルは `dist/SFC2.exe` に配置されます。
 
