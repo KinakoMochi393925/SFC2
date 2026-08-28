@@ -11,7 +11,11 @@ a = Analysis(
     binaries=[],
     # アプリ内部から利用できるように ico や icns 等のリソースを同梱
     datas=[("resources/favicon.ico", "resources")],
-    hiddenimports=["services.cli_conversion", "services.windows_context_menu"],
+    hiddenimports=[
+        "services.cli_conversion",
+        "services.mac_context_menu",
+        "services.windows_context_menu",
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

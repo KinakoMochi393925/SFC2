@@ -1,9 +1,9 @@
 # SFC2 - メディア変換アプリ
 
 動画・音声・画像ファイルのフォーマット変換とアプリ内プレビューができるパソコン向けGUIデスクトップアプリです。  
-GUIによる直感的な操作に加え、CLI（コマンドライン）からのヘッドレス一括変換や、Windows Explorer の右クリックメニュー連携にも対応しています。
+GUIによる直感的な操作に加え、CLI（コマンドライン）からのヘッドレス一括変換や、Windows Explorer / macOS Finder の右クリックメニュー連携にも対応しています。
 
-SFC2 is a media converter and preview desktop application for Windows. It provides a simple GUI as well as a headless CLI mode and Windows Explorer context-menu integration for converting video, audio, and image files.
+SFC2 is a media converter and preview desktop application for Windows and macOS. It provides a simple GUI, a headless CLI mode, and OS-integrated context-menu actions for converting video, audio, and image files.
 
 <img width="1920" height="1080" alt="GUI_cnv" src="https://github.com/user-attachments/assets/40491963-6839-4dfd-b677-318c6a9288aa" />
 *実際の画面（左：English、右：日本語）*
@@ -39,7 +39,7 @@ SFC2 is a media converter and preview desktop application for Windows. It provid
 ## 必要要件 & セットアップ
 
 ### 前提条件
-- **OS**: Windows 10 / 11 (x64 / ARM64)
+- **OS**: Windows 10 / 11 (x64 / ARM64), macOS
 - **Python**: 3.10 以上（ソースコードから実行する場合）
 - **FFmpeg**: 変換・メディア情報取得に必要です（同梱していません）。
 
@@ -108,7 +108,9 @@ SFC2.exe --convert "movie1.mkv" "music.flac" "D:\Photos"
 
 ---
 
-## Windows Explorer 右クリックメニュー登録
+## OS 右クリックメニュー連携
+
+### Windows Explorer
 
 現在のユーザー環境（管理者権限不要）の右クリックメニューに「SFC2で変換」を登録できます。
 
@@ -122,6 +124,16 @@ SFC2.exe --unregister-context-menu
 
 - **レジストリ登録先**: `HKCU\Software\Classes\*\shell\SFC2.Convert`
 - **実行コマンド**: `"<SFC2.exeの絶対パス>" --convert "%1"`
+
+### macOS Finder クイックアクション
+
+設定画面の「右クリックメニュー連携」から「右クリックメニューに登録」を押すと、
+ユーザー専用の Finder サービスとして「SFC2で変換」が登録されます。管理者権限は不要です。
+登録後は Finder で対応ファイルを右クリックし、「クイックアクション」または「サービス」から
+「SFC2で変換」を実行できます。
+
+登録解除は同じ設定画面の「右クリックメニューから解除」から行えます。
+ワークフローは `~/Library/Services/SFC2で変換.workflow` に作成されます。
 
 ---
 
@@ -137,7 +149,7 @@ SFC2.exe --unregister-context-menu
 
 ## ビルド & インストーラー作成
 
-### 1. PyInstaller による単一EXE化
+### 1. PyInstaller によるビルド
 
 `SFC2.spec` を使用して、アイコン (`resources/favicon.ico`) が組み込まれた単一の `SFC2.exe` を生成します。
 
@@ -147,7 +159,15 @@ pyinstaller SFC2_win.spec
 ```
 生成された実行ファイルは `dist/SFC2.exe` に配置されます。
 
-### 2. Inno Setup によるインストーラー作成
+macOSでは `SFC2_mac.spec` を使用して `.app` バンドルを生成します。
+
+```bash
+pyinstaller SFC2_mac.spec
+```
+
+生成されたアプリケーションは `dist/SFC2.app` に配置されます。
+
+### 2. Inno Setup によるインストーラー作成 (Windows)
 
 Inno Setupを使用して、セットアップウィザード形式のインストーラー（`SFC2_v1.2.0_Setup.exe`）を作成できます。
 
@@ -193,7 +213,8 @@ SFC2/
 │   ├── ffmpeg_locator.py       # FFmpeg実行ファイル探索
 │   ├── media_probe.py          # メディアメタデータ取得 (ffprobe/QImage)
 │   ├── bitrate_calculator.py   # 目標サイズからのビットレート計算
-│   └── windows_context_menu.py # Windowsレジストリ右クリック登録
+│   ├── windows_context_menu.py # Windowsレジストリ右クリック登録
+│   └── mac_context_menu.py     # macOS Finderクイックアクション登録
 │
 ├── models/                     # データ構造クラス
 │   ├── conversion_settings.py  # 変換設定モデル
