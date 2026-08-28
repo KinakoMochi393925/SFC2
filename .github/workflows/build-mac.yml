@@ -1,0 +1,65 @@
+name: Build macOS App with Icon and DMG
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          brew install create-dmg
+
+      # resources/SFC.png から Mac用の .icns アイコンを自動生成
+      - name: Convert PNG to ICNS
+        run: |
+          mkdir icon.iconset
+          sips -z 16 16     resources/SFC.png --out icon.iconset/icon_16x16.png
+          sips -z 32 32     resources/SFC.png --out icon.iconset/icon_16x16@2x.png
+          sips -z 32 32     resources/SFC.png --out icon.iconset/icon_32x32.png
+          sips -z 64 64     resources/SFC.png --out icon.iconset/icon_32x32@2x.png
+          sips -z 128 128   resources/SFC.png --out icon.iconset/icon_128x128.png
+          sips -z 256 256   resources/SFC.png --out icon.iconset/icon_128x128@2x.png
+          sips -z 256 256   resources/SFC.png --out icon.iconset/icon_256x256.png
+          sips -z 512 512   resources/SFC.png --out icon.iconset/icon_256x256@2x.png
+          sips -z 512 512   resources/SFC.png --out icon.iconset/icon_512x512.png
+          sips -z 1024 1024 resources/SFC.png --out icon.iconset/icon_512x512@2x.png
+          iconutil -c icns icon.iconset -o app_icon.icns
+
+      # PyInstallerでアプリ本体(.app)を作成
+      - name: Build .app with PyInstaller
+        run: |
+          pyinstaller --noconsole --onedir --icon="app_icon.icns" --name "SFC2" main.py
+
+      # create-dmgでインストーラー(.dmg)を作成
+      - name: Create DMG
+        run: |
+          create-dmg \
+            --volname "SFC2 Installer" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --app-drop-link 600 185 \
+            "dist/SFC2-Installer.dmg" \
+            "dist/SFC2.app"
+
+      # 生成したDMGファイルを成果物としてアップロード
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SFC2-macOS-Installer
+          path: dist/SFC2-Installer.dmg
