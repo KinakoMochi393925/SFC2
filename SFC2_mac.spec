@@ -2,7 +2,7 @@
 # SFC2 をmacOS用アプリケーション (.app) にパッケージングするためのPyInstaller specファイル。
 #
 # 使い方:
-#   1. あらかじめ resources/favicon.icns を準備してください。(本リポジトリにはicnsがありません。)
+#   1. あらかじめ resources/favicon.icns を準備してください。(本リポジトリにはicnsがありませんが、png画像はありますので変換して利用してください。)
 #   2. pyinstaller SFC2_mac.spec
 
 a = Analysis(
