@@ -17,8 +17,5 @@ venv/
 
 tests/
 
-installer/
-
 output/
 .exe
-.iss
