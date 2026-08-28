@@ -1,11 +1,15 @@
 """macOS Finder Quick Action / Service registration for SFC2."""
 from __future__ import annotations
 
-import os
 import plistlib
 import shutil
 import sys
 from pathlib import Path
+
+
+def _workflow_path() -> Path:
+    """Return the user-level Finder Services workflow path."""
+    return Path.home() / "Library" / "Services" / "SFC2で変換.workflow"
 
 
 def default_command_template() -> str:
@@ -24,7 +28,7 @@ def default_command_template() -> str:
 
 def register_context_menu(command_template: str | None = None) -> None:
     """Register 'SFC2で変換' as a macOS Finder Quick Action / Service."""
-    if sys.platform != "darwin" and os.name != "posix":
+    if sys.platform != "darwin":
         raise OSError("macOS context menu (Quick Actions) is only available on macOS.")
 
     workflow_dir = _workflow_path()
