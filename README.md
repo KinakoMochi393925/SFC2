@@ -143,7 +143,7 @@ SFC2.exe --unregister-context-menu
 
 ```bash
 pip install pyinstaller
-pyinstaller SFC2_win.spec
+pyinstaller SFC2.spec
 ```
 生成された実行ファイルは `dist/SFC2.exe` に配置されます。
 
