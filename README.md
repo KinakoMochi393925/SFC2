@@ -39,7 +39,7 @@ SFC2 is a media converter and preview desktop application for Windows and macOS.
 ## 必要要件 & セットアップ
 
 ### 前提条件
-- **OS**: Windows 10 / 11 (x64 / ARM64), macOS
+- **OS**: Windows 10 / 11, macOS
 - **Python**: 3.10 以上（ソースコードから実行する場合）
 - **FFmpeg**: 変換・メディア情報取得に必要です（同梱していません）。
 
